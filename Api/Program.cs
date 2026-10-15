@@ -1,5 +1,7 @@
+using Api.Endpoints;
 using Infrastructure.Persistence;
 using Infrastructure.Services;
+using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -13,43 +15,43 @@ if (string.IsNullOrWhiteSpace(connectionString))
 
 builder.Services.AddDbContext<AppDbContext>(options => options.UseSqlServer(connectionString));
 builder.Services.AddScoped<DbServices>();
+builder.Services.Configure<RouteHandlerOptions>(options => options.ThrowOnBadRequest = true);
+builder.Services.AddProblemDetails();
 
-// Add services to the container.
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+app.UseExceptionHandler(new ExceptionHandlerOptions
+{
+    ExceptionHandler = async context =>
+    {
+        var exception = context.Features.Get<IExceptionHandlerFeature>()?.Error;
+        // Write JSON even when a browser requests an HTML error response.
+        IResult result = exception is BadHttpRequestException { StatusCode: 400 } badRequest
+            ? Results.ValidationProblem(new Dictionary<string, string[]>
+            {
+                ["query"] = [badRequest.Message]
+            }, title: "Invalid query parameters.")
+            : Results.Problem(statusCode: exception is BadHttpRequestException error
+                ? error.StatusCode
+                : StatusCodes.Status500InternalServerError);
+
+        await result.ExecuteAsync(context);
+    }
+});
+
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+    app.UseSwaggerUI(options => options.SwaggerEndpoint("/openapi/v1.json", "AutoScraper API v1"));
 }
 
 app.UseHttpsRedirection();
-
-var summaries = new[]
-{
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
-
-app.MapGet("/weatherforecast", () =>
-{
-    var forecast = Enumerable.Range(1, 5).Select(index =>
-        new WeatherForecast
-        (
-            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-            Random.Shared.Next(-20, 55),
-            summaries[Random.Shared.Next(summaries.Length)]
-        ))
-        .ToArray();
-    return forecast;
-})
-.WithName("GetWeatherForecast");
+app.MapCarListingEndpoints();
 
 app.Run();
 
-internal record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
+public partial class Program
 {
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
 }

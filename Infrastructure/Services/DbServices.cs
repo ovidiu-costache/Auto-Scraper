@@ -1,8 +1,8 @@
 ﻿using Application.DTOs;
+using Application.Queries;
 using Infrastructure.Persistence;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
-using System;
 using System.Data;
 
 namespace Infrastructure.Services
@@ -16,11 +16,45 @@ namespace Infrastructure.Services
             _db = db;
         }
 
-        public async Task<List<CarListingDto>> GetAllCarListingsAsync(CancellationToken cancellationToken = default)
+        public async Task<CarListingsPageDto> GetCarListingsAsync(
+            CarListingsQuery query, CancellationToken cancellationToken = default)
         {
-            return await _db.CarListings
-                .AsNoTracking()
-                .Select(c => new CarListingDto(
+            ArgumentNullException.ThrowIfNull(query);
+
+            var listings = _db.CarListings.AsNoTracking();
+
+            if (query.Make is not null)
+            {
+                listings = listings.Where(c => c.Make == query.Make);
+            }
+
+            if (query.Model is not null)
+            {
+                listings = listings.Where(c => c.Model == query.Model);
+            }
+
+            if (query.MinYear.HasValue)
+            {
+                listings = listings.Where(c => c.Year >= query.MinYear.Value);
+            }
+
+            if (query.MaxYear.HasValue)
+            {
+                listings = listings.Where(c => c.Year <= query.MaxYear.Value);
+            }
+
+            if (query.Currency is not null)
+            {
+                listings = listings.Where(c => c.Currency == query.Currency);
+            }
+
+            var offset = checked((int)(((long)query.Page - 1) * query.PageSize));
+            var items = await listings
+                .OrderByDescending(c => c.ScrapedAt)
+                .ThenBy(c => c.Id)
+                .Skip(offset)
+                .Take(query.PageSize + 1)
+                .Select(c => new CarListingListItemDto(
                     c.Id,
                     c.Make,
                     c.Model,
@@ -33,37 +67,17 @@ namespace Infrastructure.Services
                     c.Drivetrain,
                     c.Transmission,
                     c.ListingUrl,
-                    c.CoverImage,
                     c.Source,
                     c.ScrapedAt))
                 .ToListAsync(cancellationToken);
-        }
 
-        public async Task<List<CarListingDto>> GetCarsAsync(
-            string make, string model, CancellationToken cancellationToken = default)
-        {
-            ValidateMakeAndModel(make, model);
+            var hasMore = items.Count > query.PageSize;
+            if (hasMore)
+            {
+                items.RemoveAt(items.Count - 1);
+            }
 
-            return await _db.CarListings
-                .AsNoTracking()
-                .Where(c => c.Make == make && c.Model == model)
-                .Select(c => new CarListingDto(
-                    c.Id,
-                    c.Make,
-                    c.Model,
-                    c.Year,
-                    c.Mileage,
-                    c.Price,
-                    c.Currency,
-                    c.FuelType,
-                    c.EngineCapacity,
-                    c.Drivetrain,
-                    c.Transmission,
-                    c.ListingUrl,
-                    c.CoverImage,
-                    c.Source,
-                    c.ScrapedAt))
-                .ToListAsync(cancellationToken);
+            return new CarListingsPageDto(items, query.Page, query.PageSize, hasMore);
         }
 
         public async Task<CarStatsDto> GetStatsAsync(

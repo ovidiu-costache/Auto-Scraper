@@ -1,6 +1,21 @@
 @Api_HostAddress = http://localhost:5268
 
-GET {{Api_HostAddress}}/weatherforecast/
+GET {{Api_HostAddress}}/api/car-listings
+Accept: application/json
+
+###
+
+GET {{Api_HostAddress}}/api/car-listings?make=BMW&model=320&minYear=2015&maxYear=2022&currency=EUR&page=1&pageSize=20
+Accept: application/json
+
+###
+
+GET {{Api_HostAddress}}/api/car-listings?pageSize=101
+Accept: application/json
+
+###
+
+GET {{Api_HostAddress}}/api/car-listings?minYear=abc
 Accept: application/json
 
 ###

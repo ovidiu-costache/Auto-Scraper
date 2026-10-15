@@ -4,4 +4,5 @@
   <Project Path="Domain/Domain.csproj" />
   <Project Path="Infrastructure/Infrastructure.csproj" />
   <Project Path="ScraperWorker/ScraperWorker.csproj" />
+  <Project Path="Tests/AutoScraper.Tests.csproj" />
 </Solution>

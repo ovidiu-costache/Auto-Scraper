@@ -1,5 +1,3 @@
-﻿using System;
-
 namespace Application.DTOs
 {
     public sealed record CarStatsDto(

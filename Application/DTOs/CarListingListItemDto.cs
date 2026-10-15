@@ -1,8 +1,6 @@
-﻿using System;
-
 namespace Application.DTOs
 {
-    public sealed record CarListingDto(
+    public sealed record CarListingListItemDto(
         Guid Id,
         string Make,
         string Model,
@@ -15,7 +13,6 @@ namespace Application.DTOs
         string? Drivetrain,
         string? Transmission,
         string ListingUrl,
-        byte[]? CoverImage,
         string Source,
         DateTime ScrapedAt);
 }
