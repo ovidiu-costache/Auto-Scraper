@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace Application.DTOs
 {
@@ -9,11 +7,13 @@ namespace Application.DTOs
         string Make,
         string Model,
         int Year,
-        int Mileage,
+        int? Mileage,
         decimal Price,
-        string FuelType,
-        int EngineCapacity,
-        string Transmission,
+        string Currency,
+        string? FuelType,
+        int? EngineCapacity,
+        string? Drivetrain,
+        string? Transmission,
         string ListingUrl,
         byte[]? CoverImage,
         string Source,
