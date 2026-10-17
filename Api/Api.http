@@ -19,3 +19,33 @@ GET {{Api_HostAddress}}/api/car-listings?minYear=abc
 Accept: application/json
 
 ###
+
+GET {{Api_HostAddress}}/api/car-stats?make=BMW&model=320&minYear=2015&maxYear=2022&currency=EUR
+Accept: application/json
+
+###
+
+GET {{Api_HostAddress}}/api/car-stats?make=%20BMW%20&model=%20320%20&minYear=2015&maxYear=2022&currency=%20eur%20
+Accept: application/json
+
+###
+
+GET {{Api_HostAddress}}/api/car-stats?make=NoSuchMake&model=NoSuchModel&minYear=2015&maxYear=2022&currency=EUR
+Accept: application/json
+
+###
+
+GET {{Api_HostAddress}}/api/car-stats?make=BMW&model=320&minYear=2015&maxYear=2022&currency=USD
+Accept: application/problem+json
+
+###
+
+GET {{Api_HostAddress}}/api/car-stats?make=BMW&model=320&minYear=abc&maxYear=2022&currency=EUR
+Accept: application/problem+json
+
+###
+
+GET {{Api_HostAddress}}/api/car-stats?make=BMW&model=320&minYear=2015&maxYear=2022
+Accept: application/problem+json
+
+###

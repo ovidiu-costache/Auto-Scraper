@@ -10,7 +10,7 @@ AutoScraper analyzes Romanian second-hand vehicle listings. Prices are asking pr
 - `GET /api/car-listings` supports optional exact `make`/`model` filters under the SQL Server collation, inclusive `minYear`/`maxYear`, and `currency` (`EUR` or `RON`). Text filters are trimmed; currency is normalized to uppercase.
 - Years must be between 1886 and 9999. `page` starts at 1; `pageSize` defaults to 20 and accepts 1–100. Offsets exceeding `Int32.MaxValue` are rejected.
 - Results contain `items`, `page`, `pageSize` and `hasMore`, ordered by `ScrapedAt` descending, then `Id` ascending. Images are excluded. Invalid queries return `400` Problem Details.
-- Currency-specific statistics are available through `DbServices.GetStatsAsync` and `dbo.GetCarStats`; no statistics HTTP endpoint exists yet.
+- `GET /api/car-stats` exposes currency-specific statistics through `DbServices.GetStatsAsync` and `dbo.GetCarStats`.
 
 ## Local setup
 
@@ -41,6 +41,28 @@ dotnet run --project Api --launch-profile https
 - Example: https://localhost:7118/api/car-listings?make=BMW&model=320&currency=EUR&page=1&pageSize=5
 
 Swagger/OpenAPI are enabled only in Development. `Api/Api.http` contains additional request examples. Without a configured connection string the API fails at startup; an empty listings table returns an empty page.
+
+## Car statistics endpoint
+
+`GET /api/car-stats?make=BMW&model=320&minYear=2015&maxYear=2022&currency=EUR`
+
+All five query parameters are required, with no defaults:
+
+| Parameter | Validation |
+| --- | --- |
+| `make`, `model` | Trimmed; 1–50 characters. Exact matching under the database collation. |
+| `minYear`, `maxYear` | Integers between 1886 and 9999, inclusive; `minYear <= maxYear`. |
+| `currency` | Trimmed and normalized to uppercase; `EUR` or `RON`. No currency conversion. |
+
+A successful request returns `200 application/json` with `make`, `model`, `currency`, `totalListings`, `mileageListings`, `engineCapacityListings`, `averagePrice`, `averageMileage` and `averageEngineCapacity`. Counts are 64-bit integers; averages are nullable decimals rounded to two decimal places. Mileage and engine capacity averages exclude missing values, and their counts identify the respective sample sizes. No matching listings returns `200` with zero counts and null averages.
+
+Statistics describe stored listings and asking prices within the requested year range. They do not deduplicate vehicles or imply active listings, completed sales or transaction prices. Response make/model values echo the trimmed request, and the requested year bounds are not included in the response.
+
+Missing parameters, invalid integers and validation failures return `400 application/problem+json`. The `errors` object uses parameter names for validation failures and `query` for binding failures.
+
+To test manually, run the API with the `https` launch profile, open https://localhost:7118/swagger/index.html, expand `GET /api/car-stats` and select **Try it out**. Enter `BMW`, `320`, `2015`, `2022`, `EUR` and select **Execute**. Try `currency=USD` for a validation error or an unmatched make/model for zero counts and null averages. `Api/Api.http` also includes missing-parameter and malformed-integer requests that Swagger may prevent submitting.
+
+Permanent statistics tests verify normalization, valid boundaries, invalid HTTP requests and the OpenAPI contract without SQL Server. EF Core InMemory cannot execute this stored procedure; verify successful statistics responses separately through read-only API requests against a prepared database, comparing them with `EXEC dbo.GetCarStats` using the same five filters. Do not run initialization or seed scripts as part of verification against an existing database.
 
 ## Verification
 
